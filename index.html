@@ -1,166 +1,145 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>订阅转换工具 - 高级版</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>多订阅统一上传工具</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #f9f9f9;}
+  textarea, input[type=text] { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
+  button { background-color: #1976d2; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+  button:hover { background-color: #1565c0; }
+  #result { background: #eee; padding: 10px; white-space: pre-wrap; margin-top: 10px; min-height: 80px; }
+</style>
 </head>
-<body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
-  <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
-    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">✨ 订阅转换工具（高级分享版）</h1>
+<body>
 
-    <!-- 步骤 1：输入订阅链接 -->
-    <label class="block font-semibold mb-1">步骤 1：订阅链接</label>
-    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入或通过网址参数自动填充" />
-    <button onclick="decodeBase64()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">解析并解码</button>
-    <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
+<h2>多订阅统一上传工具</h2>
 
-    <!-- 步骤 2：关键词筛选 -->
-    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔，输入中文即可）</label>
-    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" />
-    <button onclick="filterKeywords()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl">筛选节点</button>
-    <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
-    <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
+<label>订阅链接（或Base64内容）：</label>
+<textarea id="subInput" placeholder="输入订阅链接或直接粘贴Base64内容"></textarea>
 
-    <!-- 步骤 3：Base64 编码并上传 -->
-    <label class="block font-semibold mt-8 mb-1">步骤 3：GitHub Token 密钥</label>
-    <input id="token" type="password" class="w-full mb-4 p-2 border rounded-lg" placeholder="GitHub 密钥（只需粘贴一次）" />
-    <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
-    <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
+<label>上传到 GitHub 文件名（示例 sub1.txt）：</label>
+<input type="text" id="fileName" placeholder="如 sub1.txt" />
 
-    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持 URL 自动解析关键词</p>
-  </div>
+<label>筛选关键词（|分隔，默认不填即用默认关键词）：</label>
+<input type="text" id="keywords" placeholder="认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|落地|回国|本站|用户|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer" />
 
-  <script>
-    let decodedText = '';
-    let filteredText = '';
-    const defaultKeywords = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
+<button onclick="processAndUpload()">解析、筛选并上传</button>
 
-    window.onload = function () {
-      document.getElementById('keywords').value = defaultKeywords;
-      const params = new URLSearchParams(window.location.search);
-      const url = params.get('url');
-      if (url) {
-        document.getElementById('subUrl').value = decodeURIComponent(url);
-        decodeBase64();
-      }
-    };
+<div id="result">结果显示区</div>
 
-    async function decodeBase64() {
-      const subUrl = document.getElementById('subUrl').value.trim();
-      const output = document.getElementById('decoded');
-      if (!subUrl.startsWith('http')) {
-        output.textContent = '❌ 链接无效';
-        return;
-      }
-      output.textContent = '正在解析...';
-      try {
-        const res = await fetch(subUrl);
-        if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
-        const raw = await res.text();
-        decodedText = atob(raw);
-        output.textContent = decodedText;
-      } catch (e) {
-        output.textContent = '❌ 解码失败: ' + e.message;
-      }
+<script>
+const DEFAULT_KEYWORDS = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|落地|回国|本站|用户|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
+
+async function processAndUpload() {
+  const subInput = document.getElementById('subInput').value.trim();
+  const fileName = document.getElementById('fileName').value.trim();
+  let keywordsStr = document.getElementById('keywords').value.trim();
+
+  const resultEl = document.getElementById('result');
+  resultEl.textContent = '处理中，请稍候...';
+
+  if (!subInput) {
+    resultEl.textContent = '❌ 请输入订阅链接或Base64内容';
+    return;
+  }
+  if (!fileName) {
+    resultEl.textContent = '❌ 请输入上传文件名，比如 sub1.txt';
+    return;
+  }
+
+  if (!keywordsStr) keywordsStr = DEFAULT_KEYWORDS;
+  const keywords = keywordsStr.split('|').map(k => decodeURIComponent(k).toLowerCase());
+
+  try {
+    let base64Content = '';
+    if (subInput.startsWith('http')) {
+      // 订阅链接，先抓取内容
+      const resp = await fetch(subInput);
+      if (!resp.ok) throw new Error('订阅链接获取失败');
+      base64Content = await resp.text();
+    } else {
+      // 直接是 Base64 内容
+      base64Content = subInput;
     }
 
-    function filterKeywords() {
-      const keywords = document.getElementById('keywords').value.trim();
-      const output = document.getElementById('filtered');
-      const stats = document.getElementById('stats');
-      if (!decodedText) {
-        output.textContent = '⚠️ 请先进行解码';
-        return;
+    // Base64 解码
+    let decodedStr = atob(base64Content);
+
+    // 拆分成行
+    let lines = decodedStr.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    // 过滤 hy2 开头节点和关键词（关键词先 URL 编码比较，参考需求）
+    // hy2 协议全部屏蔽
+    lines = lines.filter(line => !line.toLowerCase().startsWith('hy2://'));
+
+    // 再筛关键词，URL 编码匹配，关键词要被排除（只要包含任意关键词对应的URL编码就剔除）
+    lines = lines.filter(line => {
+      let lineLower = line.toLowerCase();
+      for (const kw of keywords) {
+        const kwEncoded = encodeURIComponent(kw);
+        if (lineLower.includes(kwEncoded)) return false;
       }
+      return true;
+    });
 
-      const keywordList = keywords.split('|').map(k => k.trim()).filter(k => k);
+    // 结果编码成 base64
+    const finalBase64 = btoa(lines.join('\n'));
 
-      const allLines = decodedText.split('\n').filter(l => l.trim());
+    // 上传到 GitHub
+    // 填写你的 GitHub 用户名、仓库名和 Token
+    const githubUser = 'Kizoc';  // 你改成你自己的
+    const githubRepo = 'sub';    // 仓库名
+    const githubToken = '你的个人访问令牌PAT填这里';
 
-      const filtered = allLines.filter(line => {
-        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
-
-        let decodedLine = '';
-        try {
-          decodedLine = decodeURIComponent(line);
-        } catch {
-          decodedLine = line;
+    // 获取文件SHA（必须先获取再上传更新）
+    const getShaUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/${fileName}`;
+    let sha = null;
+    try {
+      const shaResp = await fetch(getShaUrl, {
+        headers: {
+          'Authorization': `token ${githubToken}`
         }
-
-        return !keywordList.some(k => decodedLine.includes(k));
       });
-
-      filteredText = filtered.join('\n');
-      output.textContent = filteredText || '⚠️ 所有节点都被筛掉了';
-      stats.textContent = `共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个`;
+      if (shaResp.ok) {
+        const shaData = await shaResp.json();
+        sha = shaData.sha;
+      }
+    } catch (e) {
+      // 文件不存在则不带sha上传新文件
     }
 
-    async function uploadToGitHub() {
-      const token = document.getElementById('token').value.trim();
-      const uploadStatus = document.getElementById('uploadStatus');
-      if (!token) {
-        uploadStatus.textContent = '❌ 请填写 GitHub Token';
-        return;
-      }
-      if (!filteredText) {
-        uploadStatus.textContent = '⚠️ 没有可上传的内容';
-        return;
-      }
+    // 准备上传内容
+    const commitMsg = `更新订阅文件 ${fileName} - ${new Date().toISOString()}`;
+    const uploadBody = {
+      message: commitMsg,
+      content: finalBase64,
+      branch: 'main'
+    };
+    if (sha) uploadBody.sha = sha;
 
-      const encoded = btoa(filteredText);
-      const owner = 'Kizoc';       // 你的 GitHub 用户名
-      const repo = 'suv';          // 仓库名
-      const path = 'my-suv.txt';   // 文件路径
-      const branch = 'main';
-
-      try {
-        // 获取文件sha
-        const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github+json'
-          }
-        });
-
-        let sha = null;
-        if (getResp.ok) {
-          const fileInfo = await getResp.json();
-          sha = fileInfo.sha;
-        } else if (getResp.status !== 404) {
-          const err = await getResp.json();
-          uploadStatus.textContent = '❌ 获取文件信息失败：' + (err.message || '未知错误');
-          return;
-        }
-
-        // 上传文件
-        const bodyData = {
-          message: sha ? '更新订阅内容' : '创建订阅文件',
-          content: encoded,
-          branch
-        };
-        if (sha) bodyData.sha = sha;
-
-        const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `token ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(bodyData)
-        });
-
-        if (putResp.ok) {
-          uploadStatus.textContent = '✅ 上传成功！刷新订阅链接即可使用最新节点';
-        } else {
-          const err = await putResp.json();
-          uploadStatus.textContent = '❌ 上传失败：' + (err.message || '未知错误');
-        }
-      } catch (e) {
-        uploadStatus.textContent = '❌ 异常错误：' + e.message;
-      }
+    const uploadUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/${fileName}`;
+    const uploadResp = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${githubToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(uploadBody)
+    });
+    if (!uploadResp.ok) {
+      const errData = await uploadResp.json();
+      throw new Error(errData.message || '上传失败');
     }
-  </script>
+
+    resultEl.textContent = `✅ 上传成功！文件名：${fileName}\n筛选后节点数：${lines.length}`;
+
+  } catch (err) {
+    resultEl.textContent = `❌ 错误：${err.message}`;
+  }
+}
+</script>
+
 </body>
 </html>

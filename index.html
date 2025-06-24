@@ -18,7 +18,7 @@
 
     <!-- 步骤 2：关键词筛选 -->
     <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔，输入中文即可）</label>
-    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" placeholder="例如：机场|客服|官网" />
+    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" />
     <button onclick="filterKeywords()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl">筛选节点</button>
     <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
     <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
@@ -35,8 +35,10 @@
   <script>
     let decodedText = '';
     let filteredText = '';
+    const defaultKeywords = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
 
     window.onload = function () {
+      document.getElementById('keywords').value = defaultKeywords;
       const params = new URLSearchParams(window.location.search);
       const url = params.get('url');
       if (url) {
@@ -71,18 +73,15 @@
       const allLines = decodedText.split('\n').filter(l => l.trim());
 
       const filtered = allLines.filter(line => {
-        // 先排除 hy2:// 和 hysteria2://
         if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
 
-        // 对行进行 decodeURIComponent，匹配关键词（中文关键词）
         let decodedLine = '';
         try {
           decodedLine = decodeURIComponent(line);
         } catch {
-          decodedLine = line; // decode失败就用原文
+          decodedLine = line;
         }
 
-        // 如果匹配任何一个关键词，则剔除
         return !keywordList.some(k => decodedLine.includes(k));
       });
 

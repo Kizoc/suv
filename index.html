@@ -34,8 +34,6 @@
   </div>
 
   <script>
-    const GITHUB_USERNAME = "Kizoc";
-
     let decodedText = '';
     let filteredText = '';
     let encodedText = '';
@@ -52,13 +50,23 @@
     async function decodeBase64() {
       const subUrl = document.getElementById('subUrl').value.trim();
       const output = document.getElementById('decoded');
-      if (!subUrl.startsWith('http')) return output.textContent = '❌ 链接无效';
+      if (!subUrl.startsWith('http')) {
+        output.textContent = '❌ 链接无效';
+        return;
+      }
       output.textContent = '正在解析...';
       try {
         const res = await fetch(subUrl);
         const raw = await res.text();
         decodedText = atob(raw);
         output.textContent = decodedText;
+        // 清空筛选和加密结果
+        filteredText = '';
+        encodedText = '';
+        document.getElementById('filtered').textContent = '等待筛选...';
+        document.getElementById('encoded').textContent = '等待加密...';
+        document.getElementById('filterStats').textContent = '';
+        document.getElementById('sharelink').textContent = '';
       } catch (e) {
         output.textContent = '❌ 解码失败: ' + e.message;
       }
@@ -74,25 +82,34 @@
         return;
       }
       const keywords = kw.split('|').map(k => k.trim()).filter(k => k);
-      const lines = decodedText.split('\n');
-      const total = lines.filter(l => l).length;
+      const lines = decodedText.split('\n').filter(line => line.trim() !== '');
+      const total = lines.length;
+
       const filteredLines = lines.filter(line => {
-        if (!line) return false;
-        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
-        // 节点含关键词则剔除
-        for (const k of keywords) {
-          if (line.includes(k)) return false;
+        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) {
+          return false;
+        }
+        for (const kw of keywords) {
+          if (line.includes(kw)) return false;
         }
         return true;
       });
+
       filteredText = filteredLines.join('\n');
-      output.textContent = filteredText || '⚠️ 没有匹配节点';
-      stats.textContent = `总节点数：${total}，已筛选出：${filteredLines.length}，筛掉：${total - filteredLines.length}`;
+      output.textContent = filteredText || '⚠️ 没有符合条件的节点';
+      stats.textContent = `总节点数：${total}，筛选后节点数：${filteredLines.length}，剔除节点数：${total - filteredLines.length}`;
+      // 清空加密结果
+      encodedText = '';
+      document.getElementById('encoded').textContent = '等待加密...';
+      document.getElementById('sharelink').textContent = '';
     }
 
     function encodeBase64() {
       const output = document.getElementById('encoded');
-      if (!filteredText) return output.textContent = '请先筛选';
+      if (!filteredText) {
+        output.textContent = '请先筛选';
+        return;
+      }
       encodedText = btoa(filteredText);
       output.textContent = encodedText;
     }
@@ -100,10 +117,11 @@
     function copyShareUrl() {
       const url = document.getElementById('subUrl').value.trim();
       const kw = document.getElementById('keywords').value.trim();
-      const share = `https://${GITHUB_USERNAME}.github.io/suv/index.html?url=${encodeURIComponent(url)}&keywords=${encodeURIComponent(kw)}`;
+      const share = `${location.origin}${location.pathname}?url=${encodeURIComponent(url)}&keywords=${encodeURIComponent(kw)}`;
       navigator.clipboard.writeText(share);
       document.getElementById('sharelink').textContent = '分享链接已复制：' + share;
     }
   </script>
 </body>
 </html>
+

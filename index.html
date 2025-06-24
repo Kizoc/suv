@@ -1,145 +1,283 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>多订阅统一上传工具</title>
-<style>
-  body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #f9f9f9;}
-  textarea, input[type=text] { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
-  button { background-color: #1976d2; color: white; border: none; padding: 10px 20px; cursor: pointer; }
-  button:hover { background-color: #1565c0; }
-  #result { background: #eee; padding: 10px; white-space: pre-wrap; margin-top: 10px; min-height: 80px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>订阅解析分享工具</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #e3f2fd, #fce4ec);
+      margin: 0; padding: 30px;
+      color: #222;
+    }
+    .container {
+      max-width: 720px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      padding: 25px 30px;
+    }
+    h2 {
+      color: #1976d2;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    textarea, input[type=text] {
+      width: 100%;
+      font-size: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+      resize: vertical;
+      font-family: Consolas, monospace;
+    }
+    button {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 0 auto 15px;
+      display: block;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1565c0;
+    }
+    pre {
+      background: #f6f8fa;
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      padding: 12px;
+      border: 1px solid #ddd;
+    }
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .link-box {
+      word-break: break-all;
+      background: #eee;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-bottom: 15px;
+      user-select: all;
+    }
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: #888;
+      margin-top: 20px;
+    }
+    .info {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #444;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h2>订阅解析分享工具</h2>
 
-<h2>多订阅统一上传工具</h2>
+    <label for="inputSub">订阅链接或Base64订阅内容：</label>
+    <textarea id="inputSub" rows="4" placeholder="粘贴订阅链接或者Base64编码内容"></textarea>
 
-<label>订阅链接（或Base64内容）：</label>
-<textarea id="subInput" placeholder="输入订阅链接或直接粘贴Base64内容"></textarea>
+    <label for="inputKeywords">筛选关键词（节点中含关键词将被剔除，多个关键词用 | 分隔）：</label>
+    <input type="text" id="inputKeywords" />
 
-<label>上传到 GitHub 文件名（示例 sub1.txt）：</label>
-<input type="text" id="fileName" placeholder="如 sub1.txt" />
+    <button id="btnParse">解析并生成分享链接</button>
 
-<label>筛选关键词（|分隔，默认不填即用默认关键词）：</label>
-<input type="text" id="keywords" placeholder="认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|落地|回国|本站|用户|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer" />
+    <div class="info" id="infoCount"></div>
 
-<button onclick="processAndUpload()">解析、筛选并上传</button>
+    <label>筛选结果（解码并剔除节点）：</label>
+    <pre id="result">等待解析...</pre>
 
-<div id="result">结果显示区</div>
+    <label>生成的分享链接（可复制分享）：</label>
+    <div class="link-box" id="shareLink">请先解析生成链接</div>
 
-<script>
-const DEFAULT_KEYWORDS = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|落地|回国|本站|用户|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
+    <button id="btnCopy">复制分享链接</button>
 
-async function processAndUpload() {
-  const subInput = document.getElementById('subInput').value.trim();
-  const fileName = document.getElementById('fileName').value.trim();
-  let keywordsStr = document.getElementById('keywords').value.trim();
+    <div class="footer">由无敌大帅比制作 · 本地处理 · 无上传</div>
+  </div>
 
-  const resultEl = document.getElementById('result');
-  resultEl.textContent = '处理中，请稍候...';
+  <script>
+    // 默认关键词（URL编码后的形式会在筛选时处理）
+    const defaultKeywords = [
+      "认准","全网","客服","美女","mao","网址","网站","最新","订阅","续费",
+      "迷路","官网","流量","过期","落地","回国","本站","用户","若","邮箱",
+      "剩余","顶级","机场","到期","猫","赔钱","良心","liangxin","云","世界",
+      "cloud","夏日","summer"
+    ];
 
-  if (!subInput) {
-    resultEl.textContent = '❌ 请输入订阅链接或Base64内容';
-    return;
-  }
-  if (!fileName) {
-    resultEl.textContent = '❌ 请输入上传文件名，比如 sub1.txt';
-    return;
-  }
-
-  if (!keywordsStr) keywordsStr = DEFAULT_KEYWORDS;
-  const keywords = keywordsStr.split('|').map(k => decodeURIComponent(k).toLowerCase());
-
-  try {
-    let base64Content = '';
-    if (subInput.startsWith('http')) {
-      // 订阅链接，先抓取内容
-      const resp = await fetch(subInput);
-      if (!resp.ok) throw new Error('订阅链接获取失败');
-      base64Content = await resp.text();
-    } else {
-      // 直接是 Base64 内容
-      base64Content = subInput;
+    // 解码Base64，支持Unicode字符
+    function base64DecodeUnicode(str) {
+      try {
+        return decodeURIComponent(atob(str).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+      } catch {
+        return null;
+      }
     }
 
-    // Base64 解码
-    let decodedStr = atob(base64Content);
-
-    // 拆分成行
-    let lines = decodedStr.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-    // 过滤 hy2 开头节点和关键词（关键词先 URL 编码比较，参考需求）
-    // hy2 协议全部屏蔽
-    lines = lines.filter(line => !line.toLowerCase().startsWith('hy2://'));
-
-    // 再筛关键词，URL 编码匹配，关键词要被排除（只要包含任意关键词对应的URL编码就剔除）
-    lines = lines.filter(line => {
-      let lineLower = line.toLowerCase();
-      for (const kw of keywords) {
-        const kwEncoded = encodeURIComponent(kw);
-        if (lineLower.includes(kwEncoded)) return false;
+    // 判断字符串是否Base64格式（简易判断）
+    function isBase64(str) {
+      try {
+        return btoa(atob(str)) === str.replace(/\s+/g, '');
+      } catch {
+        return false;
       }
-      return true;
-    });
+    }
 
-    // 结果编码成 base64
-    const finalBase64 = btoa(lines.join('\n'));
+    // URL解码关键词，返回URL编码形式
+    function encodeKeywordForURL(kw) {
+      return encodeURIComponent(kw);
+    }
 
-    // 上传到 GitHub
-    // 填写你的 GitHub 用户名、仓库名和 Token
-    const githubUser = 'Kizoc';  // 你改成你自己的
-    const githubRepo = 'sub';    // 仓库名
-    const githubToken = '你的个人访问令牌PAT填这里';
+    // URL解码关键词，返回小写的URL编码字符串
+    function encodeKeywordsForFilter(keywords) {
+      return keywords.map(k => encodeURIComponent(k).toLowerCase());
+    }
 
-    // 获取文件SHA（必须先获取再上传更新）
-    const getShaUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/${fileName}`;
-    let sha = null;
-    try {
-      const shaResp = await fetch(getShaUrl, {
-        headers: {
-          'Authorization': `token ${githubToken}`
+    // 解析订阅内容，筛选关键词，屏蔽hy2协议
+    function filterNodes(content, keywordsEncoded) {
+      let lines = content.split('\n').map(l => l.trim()).filter(l => l);
+
+      // 先过滤 hy2 开头的节点
+      lines = lines.filter(line => !line.toLowerCase().startsWith('hy2://'));
+
+      // 再过滤包含关键词（关键词是URL编码过的，节点也转小写URL编码后匹配）
+      const filtered = lines.filter(line => {
+        // URL编码节点
+        const encodedLine = encodeURIComponent(line.toLowerCase());
+        // 如果包含任何关键词，则过滤掉
+        for (const kw of keywordsEncoded) {
+          if (encodedLine.includes(kw)) {
+            return false;
+          }
         }
+        return true;
       });
-      if (shaResp.ok) {
-        const shaData = await shaResp.json();
-        sha = shaData.sha;
+
+      return filtered;
+    }
+
+    // 读取URL参数
+    function getUrlParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    // 页面加载时自动读取参数并解析展示
+    function autoLoadFromUrl() {
+      const subParam = getUrlParam('sub');
+      const keywordsParam = getUrlParam('keywords');
+      if (!subParam) {
+        document.getElementById('result').textContent = '请粘贴订阅链接或Base64内容，点击“解析并生成分享链接”';
+        document.getElementById('inputKeywords').value = defaultKeywords.join('|');
+        return;
       }
-    } catch (e) {
-      // 文件不存在则不带sha上传新文件
+      // 关键词参数优先使用URL参数，否则用默认
+      const keywordsRaw = keywordsParam ? decodeURIComponent(keywordsParam) : defaultKeywords.join('|');
+      document.getElementById('inputKeywords').value = keywordsRaw;
+
+      // 订阅内容用Base64形式传递
+      const decodedSub = base64DecodeUnicode(subParam);
+      if (decodedSub === null) {
+        document.getElementById('result').textContent = '订阅内容Base64解码失败，请确认输入正确';
+        return;
+      }
+
+      const keywordsEncoded = encodeKeywordsForFilter(keywordsRaw.split('|').map(k => k.trim()).filter(k => k));
+      const filtered = filterNodes(decodedSub, keywordsEncoded);
+
+      // 显示统计信息
+      const info = `总节点数：${decodedSub.split('\n').filter(l => l.trim()).length}，筛除节点数：${decodedSub.split('\n').filter(l => l.trim()).length - filtered.length}，剩余节点数：${filtered.length}`;
+      document.getElementById('infoCount').textContent = info;
+
+      document.getElementById('result').textContent = filtered.join('\n');
+
+      // 生成分享链接（包含原始Base64订阅内容和关键词）
+      const shareUrl = `${window.location.origin}${window.location.pathname}?sub=${encodeURIComponent(subParam)}&keywords=${encodeURIComponent(keywordsRaw)}`;
+      document.getElementById('shareLink').textContent = shareUrl;
     }
 
-    // 准备上传内容
-    const commitMsg = `更新订阅文件 ${fileName} - ${new Date().toISOString()}`;
-    const uploadBody = {
-      message: commitMsg,
-      content: finalBase64,
-      branch: 'main'
-    };
-    if (sha) uploadBody.sha = sha;
+    document.getElementById('btnParse').addEventListener('click', async () => {
+      let inputVal = document.getElementById('inputSub').value.trim();
+      if (!inputVal) {
+        alert('请输入订阅链接或Base64内容');
+        return;
+      }
 
-    const uploadUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/${fileName}`;
-    const uploadResp = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `token ${githubToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(uploadBody)
+      // 先判断是不是URL，是就fetch获取内容，否则直接当Base64内容处理
+      let base64Content = '';
+      if (/^https?:\/\//i.test(inputVal)) {
+        try {
+          const res = await fetch(inputVal);
+          if (!res.ok) throw new Error('网络请求失败');
+          base64Content = await res.text();
+          base64Content = base64Content.trim();
+        } catch (err) {
+          alert('订阅链接内容请求失败，请检查链接或网络');
+          return;
+        }
+      } else {
+        base64Content = inputVal;
+      }
+
+      // Base64解码检查
+      const decodedSub = base64DecodeUnicode(base64Content);
+      if (decodedSub === null) {
+        alert('Base64解码失败，请确认输入的是正确的Base64编码');
+        return;
+      }
+
+      // 获取关键词
+      let keywordsRaw = document.getElementById('inputKeywords').value.trim();
+      if (!keywordsRaw) keywordsRaw = defaultKeywords.join('|');
+
+      const keywordsEncoded = encodeKeywordsForFilter(keywordsRaw.split('|').map(k => k.trim()).filter(k => k));
+
+      // 筛选节点
+      const filtered = filterNodes(decodedSub, keywordsEncoded);
+
+      // 显示统计信息
+      const info = `总节点数：${decodedSub.split('\n').filter(l => l.trim()).length}，筛除节点数：${decodedSub.split('\n').filter(l => l.trim()).length - filtered.length}，剩余节点数：${filtered.length}`;
+      document.getElementById('infoCount').textContent = info;
+
+      document.getElementById('result').textContent = filtered.join('\n');
+
+      // 生成分享链接
+      const shareUrl = `${window.location.origin}${window.location.pathname}?sub=${encodeURIComponent(base64Content)}&keywords=${encodeURIComponent(keywordsRaw)}`;
+      document.getElementById('shareLink').textContent = shareUrl;
     });
-    if (!uploadResp.ok) {
-      const errData = await uploadResp.json();
-      throw new Error(errData.message || '上传失败');
-    }
 
-    resultEl.textContent = `✅ 上传成功！文件名：${fileName}\n筛选后节点数：${lines.length}`;
+    // 复制分享链接按钮
+    document.getElementById('btnCopy').addEventListener('click', () => {
+      const shareLink = document.getElementById('shareLink').textContent;
+      if (!shareLink || shareLink === '请先解析生成链接') {
+        alert('请先生成分享链接');
+        return;
+      }
+      navigator.clipboard.writeText(shareLink).then(() => {
+        alert('分享链接已复制');
+      }).catch(() => {
+        alert('复制失败，请手动复制链接');
+      });
+    });
 
-  } catch (err) {
-    resultEl.textContent = `❌ 错误：${err.message}`;
-  }
-}
-</script>
-
+    window.onload = autoLoadFromUrl;
+  </script>
 </body>
 </html>

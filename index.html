@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -35,6 +34,8 @@
   </div>
 
   <script>
+    const GITHUB_USERNAME = "你的GitHub用户名";
+
     let decodedText = '';
     let filteredText = '';
     let encodedText = '';
@@ -94,7 +95,7 @@
     function copyShareUrl() {
       const url = document.getElementById('subUrl').value.trim();
       const kw = document.getElementById('keywords').value.trim();
-      const share = `${location.origin}${location.pathname}?url=${encodeURIComponent(url)}&keywords=${encodeURIComponent(kw)}`;
+      const share = `https://${GITHUB_USERNAME}.github.io/suv/index.html?url=${encodeURIComponent(url)}&keywords=${encodeURIComponent(kw)}`;
       navigator.clipboard.writeText(share);
       document.getElementById('sharelink').textContent = '分享链接已复制：' + share;
     }

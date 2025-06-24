@@ -3,281 +3,210 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>订阅解析分享工具</title>
-  <style>
-    body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #e3f2fd, #fce4ec);
-      margin: 0; padding: 30px;
-      color: #222;
-    }
-    .container {
-      max-width: 720px;
-      margin: auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-      padding: 25px 30px;
-    }
-    h2 {
-      color: #1976d2;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    textarea, input[type=text] {
-      width: 100%;
-      font-size: 15px;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      margin-bottom: 15px;
-      resize: vertical;
-      font-family: Consolas, monospace;
-    }
-    button {
-      background-color: #1976d2;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      margin: 0 auto 15px;
-      display: block;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #1565c0;
-    }
-    pre {
-      background: #f6f8fa;
-      border-radius: 8px;
-      max-height: 400px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      padding: 12px;
-      border: 1px solid #ddd;
-    }
-    label {
-      font-weight: 600;
-      margin-bottom: 6px;
-      display: block;
-    }
-    .link-box {
-      word-break: break-all;
-      background: #eee;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
-      user-select: all;
-    }
-    .footer {
-      text-align: center;
-      font-size: 13px;
-      color: #888;
-      margin-top: 20px;
-    }
-    .info {
-      font-size: 14px;
-      margin-bottom: 10px;
-      color: #444;
-    }
-  </style>
+  <title>订阅转换工具 - 高级版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="container">
-    <h2>订阅解析分享工具</h2>
+<body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
+  <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">✨ 订阅转换工具（高级分享版）</h1>
 
-    <label for="inputSub">订阅链接或Base64订阅内容：</label>
-    <textarea id="inputSub" rows="4" placeholder="粘贴订阅链接或者Base64编码内容"></textarea>
+    <!-- 步骤 1：输入订阅链接 -->
+    <label class="block font-semibold mb-1">步骤 1：订阅链接</label>
+    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入或通过网址参数自动填充" />
+    <button onclick="decodeBase64()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">解析并解码</button>
+    <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
 
-    <label for="inputKeywords">筛选关键词（节点中含关键词将被剔除，多个关键词用 | 分隔）：</label>
-    <input type="text" id="inputKeywords" />
+    <!-- 步骤 2：关键词筛选 -->
+    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔，输入中文即可）</label>
+    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" />
+    <button onclick="filterKeywords()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl">筛选节点</button>
+    <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
+    <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <button id="btnParse">解析并生成分享链接</button>
+    <!-- 步骤 3：Base64 编码并上传 -->
+    <label class="block font-semibold mt-8 mb-1">步骤 3：GitHub Token 密钥</label>
+    <input id="token" type="password" class="w-full mb-4 p-2 border rounded-lg" placeholder="GitHub 密钥（只需粘贴一次）" />
+    <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
+    <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <div class="info" id="infoCount"></div>
-
-    <label>筛选结果（解码并剔除节点）：</label>
-    <pre id="result">等待解析...</pre>
-
-    <label>生成的分享链接（可复制分享）：</label>
-    <div class="link-box" id="shareLink">请先解析生成链接</div>
-
-    <button id="btnCopy">复制分享链接</button>
-
-    <div class="footer">由无敌大帅比制作 · 本地处理 · 无上传</div>
+    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持 URL 自动解析关键词</p>
   </div>
 
   <script>
-    // 默认关键词（URL编码后的形式会在筛选时处理）
-    const defaultKeywords = [
-      "认准","全网","客服","美女","mao","网址","网站","最新","订阅","续费",
-      "迷路","官网","流量","过期","落地","回国","本站","用户","若","邮箱",
-      "剩余","顶级","机场","到期","猫","赔钱","良心","liangxin","云","世界",
-      "cloud","夏日","summer"
-    ];
+    let decodedText = '';
+    let filteredText = '';
+    const defaultKeywords = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
 
-    // 解码Base64，支持Unicode字符
-    function base64DecodeUnicode(str) {
+    window.onload = function () {
+      document.getElementById('keywords').value = defaultKeywords;
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('url');
+      if (url) {
+        document.getElementById('subUrl').value = decodeURIComponent(url);
+        decodeBase64();
+      }
+    };
+
+    async function decodeBase64() {
+      const subUrl = document.getElementById('subUrl').value.trim();
+      const output = document.getElementById('decoded');
+      if (!subUrl.startsWith('http')) {
+        output.textContent = '❌ 链接无效';
+        return;
+      }
+      output.textContent = '正在解析...';
       try {
-        return decodeURIComponent(atob(str).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-      } catch {
-        return null;
+        const res = await fetch(subUrl);
+        if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
+        const raw = await res.text();
+        decodedText = atob(raw);
+        output.textContent = decodedText;
+      } catch (e) {
+        output.textContent = '❌ 解码失败: ' + e.message;
       }
     }
 
-    // 判断字符串是否Base64格式（简易判断）
-    function isBase64(str) {
-      try {
-        return btoa(atob(str)) === str.replace(/\s+/g, '');
-      } catch {
-        return false;
+    function filterKeywords() {
+      const keywords = document.getElementById('keywords').value.trim();
+      const output = document.getElementById('filtered');
+      const stats = document.getElementById('stats');
+      if (!decodedText) {
+        output.textContent = '⚠️ 请先进行解码';
+        return;
       }
-    }
 
-    // URL解码关键词，返回URL编码形式
-    function encodeKeywordForURL(kw) {
-      return encodeURIComponent(kw);
-    }
+      const keywordList = keywords.split('|').map(k => k.trim()).filter(k => k);
 
-    // URL解码关键词，返回小写的URL编码字符串
-    function encodeKeywordsForFilter(keywords) {
-      return keywords.map(k => encodeURIComponent(k).toLowerCase());
-    }
+      const allLines = decodedText.split('\n').filter(l => l.trim());
 
-    // 解析订阅内容，筛选关键词，屏蔽hy2协议
-    function filterNodes(content, keywordsEncoded) {
-      let lines = content.split('\n').map(l => l.trim()).filter(l => l);
+      const filtered = allLines.filter(line => {
+        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
 
-      // 先过滤 hy2 开头的节点
-      lines = lines.filter(line => !line.toLowerCase().startsWith('hy2://'));
-
-      // 再过滤包含关键词（关键词是URL编码过的，节点也转小写URL编码后匹配）
-      const filtered = lines.filter(line => {
-        // URL编码节点
-        const encodedLine = encodeURIComponent(line.toLowerCase());
-        // 如果包含任何关键词，则过滤掉
-        for (const kw of keywordsEncoded) {
-          if (encodedLine.includes(kw)) {
-            return false;
-          }
+        let decodedLine = '';
+        try {
+          decodedLine = decodeURIComponent(line);
+        } catch {
+          decodedLine = line;
         }
-        return true;
+
+        return !keywordList.some(k => decodedLine.includes(k));
       });
 
-      return filtered;
+      filteredText = filtered.join('\n');
+      output.textContent = filteredText || '⚠️ 所有节点都被筛掉了';
+      stats.textContent = `共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个`;
     }
 
-    // 读取URL参数
-    function getUrlParam(name) {
-      const url = new URL(window.location.href);
-      return url.searchParams.get(name);
-    }
-
-    // 页面加载时自动读取参数并解析展示
-    function autoLoadFromUrl() {
-      const subParam = getUrlParam('sub');
-      const keywordsParam = getUrlParam('keywords');
-      if (!subParam) {
-        document.getElementById('result').textContent = '请粘贴订阅链接或Base64内容，点击“解析并生成分享链接”';
-        document.getElementById('inputKeywords').value = defaultKeywords.join('|');
+    async function uploadToGitHub() {
+      const token = document.getElementById('token').value.trim();
+      const uploadStatus = document.getElementById('uploadStatus');
+      if (!token) {
+        uploadStatus.textContent = '❌ 请填写 GitHub Token';
         return;
       }
-      // 关键词参数优先使用URL参数，否则用默认
-      const keywordsRaw = keywordsParam ? decodeURIComponent(keywordsParam) : defaultKeywords.join('|');
-      document.getElementById('inputKeywords').value = keywordsRaw;
-
-      // 订阅内容用Base64形式传递
-      const decodedSub = base64DecodeUnicode(subParam);
-      if (decodedSub === null) {
-        document.getElementById('result').textContent = '订阅内容Base64解码失败，请确认输入正确';
+      if (!filteredText) {
+        uploadStatus.textContent = '⚠️ 没有可上传的内容';
         return;
       }
 
-      const keywordsEncoded = encodeKeywordsForFilter(keywordsRaw.split('|').map(k => k.trim()).filter(k => k));
-      const filtered = filterNodes(decodedSub, keywordsEncoded);
+      const encoded = btoa(filteredText);
+      const owner = 'Kizoc';       // 你的 GitHub 用户名
+      const repo = 'suv';          // 仓库名
+      const path = 'my-suv.txt';   // 文件路径
+      const branch = 'main';
 
-      // 显示统计信息
-      const info = `总节点数：${decodedSub.split('\n').filter(l => l.trim()).length}，筛除节点数：${decodedSub.split('\n').filter(l => l.trim()).length - filtered.length}，剩余节点数：${filtered.length}`;
-      document.getElementById('infoCount').textContent = info;
+      try {
+        // 获取文件sha
+        const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github+json'
+          }
+        });
 
-      document.getElementById('result').textContent = filtered.join('\n');
-
-      // 生成分享链接（包含原始Base64订阅内容和关键词）
-      const shareUrl = `${window.location.origin}${window.location.pathname}?sub=${encodeURIComponent(subParam)}&keywords=${encodeURIComponent(keywordsRaw)}`;
-      document.getElementById('shareLink').textContent = shareUrl;
-    }
-
-    document.getElementById('btnParse').addEventListener('click', async () => {
-      let inputVal = document.getElementById('inputSub').value.trim();
-      if (!inputVal) {
-        alert('请输入订阅链接或Base64内容');
-        return;
-      }
-
-      // 先判断是不是URL，是就fetch获取内容，否则直接当Base64内容处理
-      let base64Content = '';
-      if (/^https?:\/\//i.test(inputVal)) {
-        try {
-          const res = await fetch(inputVal);
-          if (!res.ok) throw new Error('网络请求失败');
-          base64Content = await res.text();
-          base64Content = base64Content.trim();
-        } catch (err) {
-          alert('订阅链接内容请求失败，请检查链接或网络');
+        let sha = null;
+        if (getResp.ok) {
+          const fileInfo = await getResp.json();
+          sha = fileInfo.sha;
+        } else if (getResp.status !== 404) {
+          const err = await getResp.json();
+          uploadStatus.textContent = '❌ 获取文件信息失败：' + (err.message || '未知错误');
           return;
         }
-      } else {
-        base64Content = inputVal;
+
+        // 上传文件
+        const bodyData = {
+          message: sha ? '更新订阅内容' : '创建订阅文件',
+          content: encoded,
+          branch
+        };
+        if (sha) bodyData.sha = sha;
+
+        const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(bodyData)
+        });
+
+        if (putResp.ok) {
+          uploadStatus.textContent = '✅ 上传成功！刷新订阅链接即可使用最新节点';
+          showCopyDialog(`https://${owner}.github.io/${repo}/${path}`);
+        } else {
+          const err = await putResp.json();
+          uploadStatus.textContent = '❌ 上传失败：' + (err.message || '未知错误');
+        }
+      } catch (e) {
+        uploadStatus.textContent = '❌ 异常错误：' + e.message;
       }
+    }
 
-      // Base64解码检查
-      const decodedSub = base64DecodeUnicode(base64Content);
-      if (decodedSub === null) {
-        alert('Base64解码失败，请确认输入的是正确的Base64编码');
-        return;
-      }
+    // 上传成功后弹窗复制链接
+    function showCopyDialog(url) {
+      const dialog = document.createElement('div');
+      dialog.style.position = 'fixed';
+      dialog.style.top = '50%';
+      dialog.style.left = '50%';
+      dialog.style.transform = 'translate(-50%, -50%)';
+      dialog.style.background = '#fff';
+      dialog.style.border = '1px solid #ccc';
+      dialog.style.padding = '20px';
+      dialog.style.zIndex = '10000';
+      dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+      dialog.style.borderRadius = '8px';
+      dialog.style.maxWidth = '90%';
+      dialog.style.textAlign = 'center';
 
-      // 获取关键词
-      let keywordsRaw = document.getElementById('inputKeywords').value.trim();
-      if (!keywordsRaw) keywordsRaw = defaultKeywords.join('|');
+      dialog.innerHTML = `
+        <p style="margin-bottom: 10px; font-weight: bold;">上传成功！请复制订阅链接：</p>
+        <input type="text" readonly value="${url}" style="width: 100%; padding: 8px; font-size: 14px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;" />
+        <button id="copyBtn" style="padding: 8px 16px; background-color: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">一键复制</button>
+        <button id="closeBtn" style="padding: 6px 12px; margin-left: 10px; background-color: #ccc; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
+      `;
 
-      const keywordsEncoded = encodeKeywordsForFilter(keywordsRaw.split('|').map(k => k.trim()).filter(k => k));
+      document.body.appendChild(dialog);
 
-      // 筛选节点
-      const filtered = filterNodes(decodedSub, keywordsEncoded);
+      const copyBtn = dialog.querySelector('#copyBtn');
+      const closeBtn = dialog.querySelector('#closeBtn');
+      const input = dialog.querySelector('input');
 
-      // 显示统计信息
-      const info = `总节点数：${decodedSub.split('\n').filter(l => l.trim()).length}，筛除节点数：${decodedSub.split('\n').filter(l => l.trim()).length - filtered.length}，剩余节点数：${filtered.length}`;
-      document.getElementById('infoCount').textContent = info;
+      copyBtn.onclick = () => {
+        input.select();
+        input.setSelectionRange(0, 99999);
+        try {
+          document.execCommand('copy');
+          alert('复制成功！');
+        } catch {
+          alert('复制失败，请手动复制。');
+        }
+      };
 
-      document.getElementById('result').textContent = filtered.join('\n');
-
-      // 生成分享链接
-      const shareUrl = `${window.location.origin}${window.location.pathname}?sub=${encodeURIComponent(base64Content)}&keywords=${encodeURIComponent(keywordsRaw)}`;
-      document.getElementById('shareLink').textContent = shareUrl;
-    });
-
-    // 复制分享链接按钮
-    document.getElementById('btnCopy').addEventListener('click', () => {
-      const shareLink = document.getElementById('shareLink').textContent;
-      if (!shareLink || shareLink === '请先解析生成链接') {
-        alert('请先生成分享链接');
-        return;
-      }
-      navigator.clipboard.writeText(shareLink).then(() => {
-        alert('分享链接已复制');
-      }).catch(() => {
-        alert('复制失败，请手动复制链接');
-      });
-    });
-
-    window.onload = autoLoadFromUrl;
+      closeBtn.onclick = () => {
+        document.body.removeChild(dialog);
+      };
+    }
   </script>
 </body>
 </html>

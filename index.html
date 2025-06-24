@@ -23,9 +23,9 @@
     <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
     <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <!-- 步骤 3：Base64 编码并上传 -->
-    <label class="block font-semibold mt-8 mb-1">步骤 3：GitHub Token 密钥</label>
-    <input id="token" type="password" class="w-full mb-4 p-2 border rounded-lg" placeholder="GitHub 密钥（只需粘贴一次）" />
+    <!-- 步骤 3：GitHub Token 密钥 和密码 -->
+    <label class="block font-semibold mt-8 mb-1">步骤 3：上传密码</label>
+    <input id="uploadPassword" type="password" class="w-full mb-4 p-2 border rounded-lg" placeholder="请输入上传密码（示例：1998）" />
     <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
     <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
 
@@ -36,6 +36,16 @@
     let decodedText = '';
     let filteredText = '';
     const defaultKeywords = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
+
+    // 你的 GitHub Token（内置，不能修改）
+    const GITHUB_TOKEN = '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';
+    const OWNER = 'Kizoc';       // GitHub 用户名
+    const REPO = 'suv';          // 仓库名
+    const PATH = 'my-suv.txt';   // 文件路径
+    const BRANCH = 'main';
+
+    // 上传密码
+    const UPLOAD_PASSWORD = '1998';
 
     window.onload = function () {
       document.getElementById('keywords').value = defaultKeywords;
@@ -98,28 +108,26 @@
     }
 
     async function uploadToGitHub() {
-      const token = document.getElementById('token').value.trim();
+      const pwdInput = document.getElementById('uploadPassword').value.trim();
       const uploadStatus = document.getElementById('uploadStatus');
-      if (!token) {
-        uploadStatus.textContent = '❌ 请填写 GitHub Token';
+
+      if (pwdInput !== UPLOAD_PASSWORD) {
+        uploadStatus.textContent = '❌ 上传密码错误';
         return;
       }
+
       if (!filteredText) {
         uploadStatus.textContent = '⚠️ 没有可上传的内容';
         return;
       }
 
       const encoded = btoa(filteredText);
-      const owner = 'Kizoc';       // 你的 GitHub 用户名
-      const repo = 'suv';          // 仓库名
-      const path = 'my-suv.txt';   // 文件路径
-      const branch = 'main';
 
       try {
         // 获取文件sha
-        const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
+        const getResp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}`, {
           headers: {
-            'Authorization': `token ${token}`,
+            'Authorization': `token ${GITHUB_TOKEN}`,
             'Accept': 'application/vnd.github+json'
           }
         });
@@ -138,14 +146,14 @@
         const bodyData = {
           message: sha ? '更新订阅内容' : '创建订阅文件',
           content: encoded,
-          branch
+          branch: BRANCH
         };
         if (sha) bodyData.sha = sha;
 
-        const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+        const putResp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
           method: 'PUT',
           headers: {
-            'Authorization': `token ${token}`,
+            'Authorization': `token ${GITHUB_TOKEN}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(bodyData)
@@ -153,7 +161,7 @@
 
         if (putResp.ok) {
           uploadStatus.textContent = '✅ 上传成功！刷新订阅链接即可使用最新节点';
-          showCopyDialog(`https://${owner}.github.io/${repo}/${path}`);
+          showCopyDialog(`https://${OWNER}.github.io/${REPO}/${PATH}`);
         } else {
           const err = await putResp.json();
           uploadStatus.textContent = '❌ 上传失败：' + (err.message || '未知错误');
@@ -163,7 +171,7 @@
       }
     }
 
-    // 上传成功后弹窗复制链接
+    // 上传成功后弹窗复制链接，点击复制自动关闭弹窗
     function showCopyDialog(url) {
       const dialog = document.createElement('div');
       dialog.style.position = 'fixed';
@@ -198,6 +206,7 @@
         try {
           document.execCommand('copy');
           alert('复制成功！');
+          document.body.removeChild(dialog); // 复制成功后自动关闭弹窗
         } catch {
           alert('复制失败，请手动复制。');
         }

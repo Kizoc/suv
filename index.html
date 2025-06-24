@@ -1,1 +1,103 @@
 
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>订阅转换工具 - 高级版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
+  <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">✨ 订阅转换工具（高级分享版）</h1>
+
+    <!-- 步骤 1：输入订阅链接 -->
+    <label class="block font-semibold mb-1">步骤 1：订阅链接</label>
+    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入或通过网址参数自动填充" />
+    <button onclick="decodeBase64()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">解析并解码</button>
+    <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
+
+    <!-- 步骤 2：筛选关键词 -->
+    <label class="block font-semibold mt-6 mb-1">步骤 2：筛选关键词（用 | 分隔）</label>
+    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" value="认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|com|迷路|官网|6|7|8|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer" />
+    <button onclick="filterNodes()" class="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl">筛选节点</button>
+    <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待筛选...</pre>
+    <p id="filterStats" class="text-sm text-gray-600 mt-2"></p>
+
+    <!-- 步骤 3：加密并生成分享链接 -->
+    <button onclick="encodeBase64()" class="bg-green-600 hover:bg-green-700 text-white mt-6 px-4 py-2 rounded-xl">Base64 加密</button>
+    <pre id="encoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待加密...</pre>
+
+    <button onclick="copyShareUrl()" class="bg-gray-700 hover:bg-black text-white mt-4 px-4 py-2 rounded-xl">🔗 复制分享链接</button>
+    <pre id="sharelink" class="text-xs text-gray-500 mt-2 whitespace-pre-wrap break-words"></pre>
+
+    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持 URL 自动解析关键词</p>
+  </div>
+
+  <script>
+    let decodedText = '';
+    let filteredText = '';
+    let encodedText = '';
+
+    window.onload = function () {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('url');
+      const kw = params.get('keywords');
+      if (url) document.getElementById('subUrl').value = decodeURIComponent(url);
+      if (kw) document.getElementById('keywords').value = decodeURIComponent(kw);
+      if (url) decodeBase64();
+    };
+
+    async function decodeBase64() {
+      const subUrl = document.getElementById('subUrl').value.trim();
+      const output = document.getElementById('decoded');
+      if (!subUrl.startsWith('http')) return output.textContent = '❌ 链接无效';
+      output.textContent = '正在解析...';
+      try {
+        const res = await fetch(subUrl);
+        const raw = await res.text();
+        decodedText = atob(raw);
+        output.textContent = decodedText;
+      } catch (e) {
+        output.textContent = '❌ 解码失败: ' + e.message;
+      }
+    }
+
+    function filterNodes() {
+      const kw = document.getElementById('keywords').value.trim();
+      const output = document.getElementById('filtered');
+      const stats = document.getElementById('filterStats');
+      if (!decodedText) {
+        output.textContent = '请先解码';
+        stats.textContent = '';
+        return;
+      }
+      const keywords = kw.split('|').map(k => k.trim()).filter(k => k);
+      const lines = decodedText.split('\n');
+      const total = lines.filter(l => l).length;
+      const filteredLines = lines.filter(line => {
+        if (!line || line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
+        return keywords.some(k => line.includes(k));
+      });
+      filteredText = filteredLines.join('\n');
+      output.textContent = filteredText || '⚠️ 没有匹配节点';
+      stats.textContent = `总节点数：${total}，已筛选出：${filteredLines.length}，筛掉：${total - filteredLines.length}`;
+    }
+
+    function encodeBase64() {
+      const output = document.getElementById('encoded');
+      if (!filteredText) return output.textContent = '请先筛选';
+      encodedText = btoa(filteredText);
+      output.textContent = encodedText;
+    }
+
+    function copyShareUrl() {
+      const url = document.getElementById('subUrl').value.trim();
+      const kw = document.getElementById('keywords').value.trim();
+      const share = `${location.origin}${location.pathname}?url=${encodeURIComponent(url)}&keywords=${encodeURIComponent(kw)}`;
+      navigator.clipboard.writeText(share);
+      document.getElementById('sharelink').textContent = '分享链接已复制：' + share;
+    }
+  </script>
+</body>
+</html>

@@ -77,8 +77,13 @@
       const lines = decodedText.split('\n');
       const total = lines.filter(l => l).length;
       const filteredLines = lines.filter(line => {
-        if (!line || line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
-        return keywords.some(k => line.includes(k));
+        if (!line) return false;
+        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
+        // 节点含关键词则剔除
+        for (const k of keywords) {
+          if (line.includes(k)) return false;
+        }
+        return true;
       });
       filteredText = filteredLines.join('\n');
       output.textContent = filteredText || '⚠️ 没有匹配节点';

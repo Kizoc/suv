@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>订阅转换工具 - 高级分享版</title>
+  <title>订阅转换工具 - 高级版</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
@@ -16,19 +16,18 @@
     <button onclick="decodeBase64()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">解析并解码</button>
     <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
 
-    <!-- 步骤 2：筛选关键词 -->
-    <label class="block font-semibold mt-6 mb-1">步骤 2：筛选关键词（用 | 分隔）</label>
-    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" value="认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|com|迷路|官网|6|7|8|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer" />
-    <button onclick="filterNodes()" class="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl">筛选节点</button>
-    <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待筛选...</pre>
-    <p id="filterStats" class="text-sm text-gray-600 mt-2"></p>
+    <!-- 步骤 2：关键词筛选 -->
+    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔，输入中文即可）</label>
+    <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" placeholder="例如：机场|客服|官网" />
+    <button onclick="filterKeywords()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl">筛选节点</button>
+    <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
+    <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <!-- 步骤 3：加密并生成分享链接 -->
-    <button onclick="encodeBase64()" class="bg-green-600 hover:bg-green-700 text-white mt-6 px-4 py-2 rounded-xl">Base64 加密</button>
-    <pre id="encoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待加密...</pre>
-
-    <button onclick="copyShareUrl()" class="bg-gray-700 hover:bg-black text-white mt-4 px-4 py-2 rounded-xl">🔗 复制分享链接</button>
-    <pre id="sharelink" class="text-xs text-gray-500 mt-2 whitespace-pre-wrap break-words"></pre>
+    <!-- 步骤 3：Base64 编码并上传 -->
+    <label class="block font-semibold mt-8 mb-1">步骤 3：GitHub Token 密钥</label>
+    <input id="token" type="password" class="w-full mb-4 p-2 border rounded-lg" placeholder="GitHub 密钥（只需粘贴一次）" />
+    <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
+    <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
 
     <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持 URL 自动解析关键词</p>
   </div>
@@ -36,15 +35,14 @@
   <script>
     let decodedText = '';
     let filteredText = '';
-    let encodedText = '';
 
     window.onload = function () {
       const params = new URLSearchParams(window.location.search);
       const url = params.get('url');
-      const kw = params.get('keywords');
-      if (url) document.getElementById('subUrl').value = decodeURIComponent(url);
-      if (kw) document.getElementById('keywords').value = decodeURIComponent(kw);
-      if (url) decodeBase64();
+      if (url) {
+        document.getElementById('subUrl').value = decodeURIComponent(url);
+        decodeBase64();
+      }
     };
 
     async function decodeBase64() {
@@ -62,69 +60,65 @@
       }
     }
 
-    function filterNodes() {
-      const kw = document.getElementById('keywords').value.trim();
+    function filterKeywords() {
+      const keywords = document.getElementById('keywords').value.trim();
       const output = document.getElementById('filtered');
-      const stats = document.getElementById('filterStats');
-      if (!decodedText) {
-        output.textContent = '请先解码';
-        stats.textContent = '';
-        return;
-      }
+      const stats = document.getElementById('stats');
+      if (!decodedText) return output.textContent = '⚠️ 请先进行解码';
 
-      const keywords = kw
-        .split('|')
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k);
+      const keywordList = keywords.split('|').map(k => k.trim()).filter(k => k);
 
-      const lines = decodedText.split('\n').map(l => l.trim()).filter(l => l);
-      const total = lines.length;
+      const allLines = decodedText.split('\n').filter(l => l.trim());
 
-      console.log('关键词列表:', keywords);
-      console.log('总节点数:', total);
+      const filtered = allLines.filter(line => {
+        // 先排除 hy2:// 和 hysteria2://
+        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
 
-      const filteredLines = lines.filter(line => {
-        const lowerLine = line.toLowerCase();
-
-        if (lowerLine.startsWith('hy2://') || lowerLine.startsWith('hysteria2://')) {
-          console.log('剔除协议节点:', line);
-          return false;
+        // 对行进行 decodeURIComponent，匹配关键词（中文关键词）
+        let decodedLine = '';
+        try {
+          decodedLine = decodeURIComponent(line);
+        } catch {
+          decodedLine = line; // decode失败就用原文
         }
 
-        for (const kw of keywords) {
-          if (lowerLine.includes(kw)) {
-            console.log('剔除关键词节点:', line, '包含关键词:', kw);
-            return false;
-          }
-        }
-
-        return true;
+        // 如果匹配任何一个关键词，则剔除
+        return !keywordList.some(k => decodedLine.includes(k));
       });
 
-      filteredText = filteredLines.join('\n');
-      output.textContent = filteredText || '⚠️ 没有符合条件的节点';
-      stats.textContent = `总节点数：${total}，筛选后节点数：${filteredLines.length}，剔除节点数：${total - filteredLines.length}`;
-
-      encodedText = '';
-      document.getElementById('encoded').textContent = '等待加密...';
-      document.getElementById('sharelink').textContent = '';
+      filteredText = filtered.join('\n');
+      output.textContent = filteredText || '⚠️ 所有节点都被筛掉了';
+      stats.textContent = `共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个`;
     }
 
-    function encodeBase64() {
-      const output = document.getElementById('encoded');
-      if (!filteredText) return output.textContent = '请先筛选';
-      encodedText = btoa(filteredText);
-      output.textContent = encodedText;
-    }
+    async function uploadToGitHub() {
+      const token = document.getElementById('token').value.trim();
+      const uploadStatus = document.getElementById('uploadStatus');
+      if (!token) return uploadStatus.textContent = '❌ 请填写 GitHub Token';
+      if (!filteredText) return uploadStatus.textContent = '⚠️ 没有可上传的内容';
 
-    function copyShareUrl() {
-      const url = document.getElementById('subUrl').value.trim();
-      const kw = document.getElementById('keywords').value.trim();
-      const share = `${location.origin}${location.pathname}?url=${encodeURIComponent(url)}&keywords=${encodeURIComponent(kw)}`;
-      navigator.clipboard.writeText(share);
-      document.getElementById('sharelink').textContent = '分享链接已复制：' + share;
+      const encoded = btoa(filteredText);
+
+      const response = await fetch('https://api.github.com/repos/Kizoc/sub/contents/my-sub.txt', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: '更新订阅内容',
+          content: encoded,
+          branch: 'main'
+        })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        uploadStatus.textContent = '✅ 上传成功！刷新订阅链接即可使用最新节点';
+      } else {
+        uploadStatus.textContent = `❌ 上传失败：${result.message || '未知错误'}`;
+      }
     }
   </script>
 </body>
 </html>
-

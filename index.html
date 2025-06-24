@@ -57,7 +57,7 @@
       output.textContent = '正在解析...';
       try {
         const res = await fetch(subUrl);
-        if (!res.ok) throw new Error(请求失败，状态码 ${res.status});
+        if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
         const raw = await res.text();
         decodedText = atob(raw);
         output.textContent = decodedText;
@@ -94,7 +94,7 @@
 
       filteredText = filtered.join('\n');
       output.textContent = filteredText || '⚠️ 所有节点都被筛掉了';
-      stats.textContent = 共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个;
+      stats.textContent = `共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个`;
     }
 
     async function uploadToGitHub() {
@@ -117,9 +117,9 @@
 
       try {
         // 获取文件sha
-        const getResp = await fetch(https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}, {
+        const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
           headers: {
-            'Authorization': token ${token},
+            'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github+json'
           }
         });
@@ -142,10 +142,10 @@
         };
         if (sha) bodyData.sha = sha;
 
-        const putResp = await fetch(https://api.github.com/repos/${owner}/${repo}/contents/${path}, {
+        const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
           method: 'PUT',
           headers: {
-            'Authorization': token ${token},
+            'Authorization': `token ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(bodyData)
@@ -153,7 +153,6 @@
 
         if (putResp.ok) {
           uploadStatus.textContent = '✅ 上传成功！刷新订阅链接即可使用最新节点';
-          showCopyDialog(https://${owner}.github.io/${repo}/${path});
         } else {
           const err = await putResp.json();
           uploadStatus.textContent = '❌ 上传失败：' + (err.message || '未知错误');
@@ -161,51 +160,6 @@
       } catch (e) {
         uploadStatus.textContent = '❌ 异常错误：' + e.message;
       }
-    }
-
-    // 上传成功后弹窗复制链接
-    function showCopyDialog(url) {
-      const dialog = document.createElement('div');
-      dialog.style.position = 'fixed';
-      dialog.style.top = '50%';
-      dialog.style.left = '50%';
-      dialog.style.transform = 'translate(-50%, -50%)';
-      dialog.style.background = '#fff';
-      dialog.style.border = '1px solid #ccc';
-      dialog.style.padding = '20px';
-      dialog.style.zIndex = '10000';
-      dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
-      dialog.style.borderRadius = '8px';
-      dialog.style.maxWidth = '90%';
-      dialog.style.textAlign = 'center';
-
-      dialog.innerHTML = 
-        <p style="margin-bottom: 10px; font-weight: bold;">上传成功！请复制订阅链接：</p>
-        <input type="text" readonly value="${url}" style="width: 100%; padding: 8px; font-size: 14px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;" />
-        <button id="copyBtn" style="padding: 8px 16px; background-color: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">一键复制</button>
-        <button id="closeBtn" style="padding: 6px 12px; margin-left: 10px; background-color: #ccc; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
-      ;
-
-      document.body.appendChild(dialog);
-
-      const copyBtn = dialog.querySelector('#copyBtn');
-      const closeBtn = dialog.querySelector('#closeBtn');
-      const input = dialog.querySelector('input');
-
-      copyBtn.onclick = () => {
-        input.select();
-        input.setSelectionRange(0, 99999);
-        try {
-          document.execCommand('copy');
-          alert('复制成功！');
-        } catch {
-          alert('复制失败，请手动复制。');
-        }
-      };
-
-      closeBtn.onclick = () => {
-        document.body.removeChild(dialog);
-      };
     }
   </script>
 </body>

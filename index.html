@@ -26,6 +26,13 @@
     <!-- 步骤 3：GitHub Token -->
     <label class="block font-semibold mt-8 mb-1">步骤 3：GitHub Token 密钥</label>
     <input id="token" type="text" class="w-full mb-4 p-2 border rounded-lg" placeholder="GitHub 密钥（只需粘贴一次）" />
+
+    <!-- 新增下拉选择文件 -->
+    <label class="block font-semibold mb-1">选择目标文件（553388369.txt - 553388468.txt）</label>
+    <select id="fileSelect" class="w-full mb-4 p-2 border rounded-lg">
+      <option value="">请选择文件编号</option>
+    </select>
+
     <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
     <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
 
@@ -44,6 +51,15 @@
       if (url) {
         document.getElementById('subUrl').value = decodeURIComponent(url);
         decodeBase64();
+      }
+
+      // 填充下拉框文件列表
+      const fileSelect = document.getElementById('fileSelect');
+      for (let i = 553388369; i <= 553388468; i++) {
+        const opt = document.createElement('option');
+        opt.value = `${i}.txt`;
+        opt.textContent = `${i}.txt`;
+        fileSelect.appendChild(opt);
       }
     };
 
@@ -95,9 +111,15 @@
 
     async function uploadToGitHub() {
       const token = document.getElementById('token').value.trim();
+      const selectedFile = document.getElementById('fileSelect').value;
       const uploadStatus = document.getElementById('uploadStatus');
+
       if (!token) {
         uploadStatus.textContent = '❌ 请填写 GitHub Token';
+        return;
+      }
+      if (!selectedFile) {
+        uploadStatus.textContent = '❌ 请选择一个文件编号';
         return;
       }
       if (!filteredText) {
@@ -108,7 +130,7 @@
       const encoded = btoa(filteredText);
       const owner = 'Kizoc';
       const repo = 'suv';
-      const path = 'my-suv.txt';
+      const path = selectedFile;
       const branch = 'main';
 
       try {
@@ -130,7 +152,7 @@
         }
 
         const bodyData = {
-          message: sha ? '更新订阅内容' : '创建订阅文件',
+          message: sha ? `更新 ${path}` : `创建 ${path}`,
           content: encoded,
           branch
         };
@@ -146,7 +168,7 @@
         });
 
         if (putResp.ok) {
-          uploadStatus.textContent = '✅ 上传成功！刷新订阅链接即可使用最新节点';
+          uploadStatus.textContent = `✅ 上传成功：${path}`;
           showCopyDialog(`https://${owner}.github.io/${repo}/${path}`);
         } else {
           const err = await putResp.json();
@@ -201,3 +223,4 @@
   </script>
 </body>
 </html>
+

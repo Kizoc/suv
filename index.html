@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>订阅转换工具 - 高级版</title>
+  <title>订阅转换工具 - 高级分享版</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
@@ -19,53 +19,7 @@
     <!-- 步骤 2：筛选关键词 -->
     <label class="block font-semibold mt-6 mb-1">步骤 2：筛选关键词（用 | 分隔）</label>
     <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" value="认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|com|迷路|官网|6|7|8|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer" />
-    <button onclick="function filterNodes() {
-  const kw = document.getElementById('keywords').value.trim();
-  const output = document.getElementById('filtered');
-  const stats = document.getElementById('filterStats');
-  if (!decodedText) {
-    output.textContent = '请先解码';
-    stats.textContent = '';
-    return;
-  }
-
-  // 关键词小写处理数组
-  const keywords = kw
-    .split('|')
-    .map(k => k.trim().toLowerCase())
-    .filter(k => k);
-
-  const lines = decodedText.split('\n').map(l => l.trim()).filter(l => l);
-  const total = lines.length;
-
-  // 过滤逻辑
-  const filteredLines = lines.filter(line => {
-    const lowerLine = line.toLowerCase();
-
-    // 剔除 hy2 和 hysteria2 协议节点（忽略大小写）
-    if (lowerLine.startsWith('hy2://') || lowerLine.startsWith('hysteria2://')) {
-      return false;
-    }
-
-    // 如果节点包含任何关键词，剔除
-    if (keywords.some(kw => lowerLine.includes(kw))) {
-      return false;
-    }
-
-    // 通过筛选
-    return true;
-  });
-
-  filteredText = filteredLines.join('\n');
-  output.textContent = filteredText || '⚠️ 没有符合条件的节点';
-  stats.textContent = `总节点数：${total}，筛选后节点数：${filteredLines.length}，剔除节点数：${total - filteredLines.length}`;
-
-  // 清空加密结果和分享链接
-  encodedText = '';
-  document.getElementById('encoded').textContent = '等待加密...';
-  document.getElementById('sharelink').textContent = '';
-}
-()" class="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl">筛选节点</button>
+    <button onclick="filterNodes()" class="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl">筛选节点</button>
     <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待筛选...</pre>
     <p id="filterStats" class="text-sm text-gray-600 mt-2"></p>
 
@@ -96,23 +50,13 @@
     async function decodeBase64() {
       const subUrl = document.getElementById('subUrl').value.trim();
       const output = document.getElementById('decoded');
-      if (!subUrl.startsWith('http')) {
-        output.textContent = '❌ 链接无效';
-        return;
-      }
+      if (!subUrl.startsWith('http')) return output.textContent = '❌ 链接无效';
       output.textContent = '正在解析...';
       try {
         const res = await fetch(subUrl);
         const raw = await res.text();
         decodedText = atob(raw);
         output.textContent = decodedText;
-        // 清空筛选和加密结果
-        filteredText = '';
-        encodedText = '';
-        document.getElementById('filtered').textContent = '等待筛选...';
-        document.getElementById('encoded').textContent = '等待加密...';
-        document.getElementById('filterStats').textContent = '';
-        document.getElementById('sharelink').textContent = '';
       } catch (e) {
         output.textContent = '❌ 解码失败: ' + e.message;
       }
@@ -127,24 +71,40 @@
         stats.textContent = '';
         return;
       }
-      const keywords = kw.split('|').map(k => k.trim()).filter(k => k);
-      const lines = decodedText.split('\n').filter(line => line.trim() !== '');
+
+      const keywords = kw
+        .split('|')
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k);
+
+      const lines = decodedText.split('\n').map(l => l.trim()).filter(l => l);
       const total = lines.length;
 
+      console.log('关键词列表:', keywords);
+      console.log('总节点数:', total);
+
       const filteredLines = lines.filter(line => {
-        if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) {
+        const lowerLine = line.toLowerCase();
+
+        if (lowerLine.startsWith('hy2://') || lowerLine.startsWith('hysteria2://')) {
+          console.log('剔除协议节点:', line);
           return false;
         }
+
         for (const kw of keywords) {
-          if (line.includes(kw)) return false;
+          if (lowerLine.includes(kw)) {
+            console.log('剔除关键词节点:', line, '包含关键词:', kw);
+            return false;
+          }
         }
+
         return true;
       });
 
       filteredText = filteredLines.join('\n');
       output.textContent = filteredText || '⚠️ 没有符合条件的节点';
       stats.textContent = `总节点数：${total}，筛选后节点数：${filteredLines.length}，剔除节点数：${total - filteredLines.length}`;
-      // 清空加密结果
+
       encodedText = '';
       document.getElementById('encoded').textContent = '等待加密...';
       document.getElementById('sharelink').textContent = '';
@@ -152,10 +112,7 @@
 
     function encodeBase64() {
       const output = document.getElementById('encoded');
-      if (!filteredText) {
-        output.textContent = '请先筛选';
-        return;
-      }
+      if (!filteredText) return output.textContent = '请先筛选';
       encodedText = btoa(filteredText);
       output.textContent = encodedText;
     }

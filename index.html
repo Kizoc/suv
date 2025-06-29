@@ -3,87 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>订阅转换工具 - 高级分享版</title>
+  <title>订阅转换工具 - 双模式解码</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
   <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
-    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">✨ 订阅转换工具（无敌大帅比）</h1>
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">🔧 订阅转换工具 - 双模式解码</h1>
 
-    <!-- 步骤 1：输入订阅链接 -->
-    <label class="block font-semibold mb-1">步骤 1：订阅链接</label>
-    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入或通过网址参数自动填充" />
-    <button onclick="decodeBase64()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">解析并解码</button>
-    <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
+    <!-- 步骤 1：解码选择 -->
+    <label class="block font-semibold mb-1">步骤 1：输入订阅链接</label>
+    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入订阅链接或 ?url= 参数" />
+
+    <div class="flex space-x-2 mb-4">
+      <button onclick="decodeViaWorker()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">Worker 解码</button>
+      <button onclick="decodeDirect()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl">本地直连解码</button>
+    </div>
+    <pre id="decoded" class="bg-gray-100 mt-2 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
 
     <!-- 步骤 2：关键词筛选 -->
-    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔，输入中文即可）</label>
+    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（用 | 分隔）</label>
     <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" />
     <button onclick="filterKeywords()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl">筛选节点</button>
     <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
     <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <!-- 步骤 3：无敌密码 -->
-    <label class="block font-semibold mt-8 mb-1">步骤 3：请输入密码 </label>
-    <input id="token" type="text" class="w-full mb-4 p-2 border rounded-lg" placeholder="请输入你的 无敌密码" />
+    <!-- 步骤 3：Token -->
+    <label class="block font-semibold mt-6 mb-1">步骤 3：GitHub Token</label>
+    <input id="token" class="w-full mb-4 p-2 border rounded-lg" placeholder="直接填写 GitHub Token" />
 
-    <!-- 新增下拉选择文件 -->
-    <label class="block font-semibold mb-1">选择目标文件（553388369.txt - 553388468.txt）</label>
-    <select id="fileSelect" class="w-full mb-4 p-2 border rounded-lg">
-      <option value="">请选择文件编号</option>
-    </select>
+    <!-- 步骤 4：文件选择并上传 -->
+    <label class="block font-semibold mb-1">步骤 4：选择上传文件编号</label>
+    <select id="fileSelect" class="w-full mb-4 p-2 border rounded-lg"></select>
 
     <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
     <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持 URL 自动解析关键词</p>
+    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持双模式解析</p>
   </div>
 
   <script>
     let decodedText = '';
     let filteredText = '';
-    const defaultKeywords = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
+    const defaultKeywords = '认准|客服|美女|官网|流量|猫|迷路|续费|剩余|过期|订阅|顶级|liangxin|机场|summer';
 
     window.onload = function () {
       document.getElementById('keywords').value = defaultKeywords;
-      const params = new URLSearchParams(window.location.search);
-      const url = params.get('url');
-      if (url) {
-        document.getElementById('subUrl').value = decodeURIComponent(url);
-        decodeBase64();
-      }
-
-      // 填充下拉框文件列表
-      const fileSelect = document.getElementById('fileSelect');
+      const sel = document.getElementById('fileSelect');
       for (let i = 553388369; i <= 553388468; i++) {
         const opt = document.createElement('option');
         opt.value = `${i}.txt`;
         opt.textContent = `${i}.txt`;
-        fileSelect.appendChild(opt);
+        sel.appendChild(opt);
       }
     };
 
-    async function decodeBase64() {
+    async function decodeViaWorker() {
       const subUrl = document.getElementById('subUrl').value.trim();
       const output = document.getElementById('decoded');
-      if (!subUrl.startsWith('http')) {
-        output.textContent = '❌ 链接无效';
-        return;
-      }
-      output.textContent = '正在解析...';
+      if (!subUrl) return output.textContent = '❌ 请输入订阅链接';
+      output.textContent = '正在通过 Worker 解码...';
       try {
-        const proxyUrl = 'https://proxy-worker.kizoc369.workers.dev/?url=' + encodeURIComponent(subUrl);
+        const proxyUrl = "https://proxy-worker.kizoc369.workers.dev/?url=" + encodeURIComponent(subUrl);
         const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
         const raw = await res.text();
-        try {
-          decodedText = atob(raw);
-        } catch {
-          decodedText = raw;
-        }
+        try { decodedText = atob(raw); } catch { decodedText = raw; }
         output.textContent = decodedText;
       } catch (e) {
-        output.textContent = '❌ 解码失败: ' + e.message;
+        output.textContent = '❌ 解码失败：' + e.message;
+      }
+    }
+
+    async function decodeDirect() {
+      const subUrl = document.getElementById('subUrl').value.trim();
+      const output = document.getElementById('decoded');
+      if (!subUrl) return output.textContent = '❌ 请输入订阅链接';
+      output.textContent = '正在直连解析...';
+      try {
+        const res = await fetch(subUrl);
+        const raw = await res.text();
+        try { decodedText = atob(raw); } catch { decodedText = raw; }
+        output.textContent = decodedText;
+      } catch (e) {
+        output.textContent = '❌ 直连失败：' + e.message;
       }
     }
 
@@ -91,96 +92,67 @@
       const keywords = document.getElementById('keywords').value.trim();
       const output = document.getElementById('filtered');
       const stats = document.getElementById('stats');
-      if (!decodedText) {
-        output.textContent = '⚠️ 请先进行解码';
-        return;
-      }
+      if (!decodedText) return output.textContent = '⚠️ 请先解码';
 
-      const keywordList = keywords.split('|').map(k => k.trim()).filter(k => k);
+      const keywordList = keywords.split('|').map(k => k.trim());
       const allLines = decodedText.split('\n').filter(l => l.trim());
       const filtered = allLines.filter(line => {
         if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
-        let decodedLine = '';
-        try {
-          decodedLine = decodeURIComponent(line);
-        } catch {
-          decodedLine = line;
-        }
-        return !keywordList.some(k => decodedLine.includes(k));
+        let decoded = '';
+        try { decoded = decodeURIComponent(line); } catch { decoded = line; }
+        return !keywordList.some(k => decoded.includes(k));
       });
-
       filteredText = filtered.join('\n');
-      output.textContent = filteredText || '⚠️ 所有节点都被筛掉了';
-      stats.textContent = `共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个`;
+      output.textContent = filteredText || '⚠️ 全部被筛掉了';
+      stats.textContent = `共 ${allLines.length} 条，保留 ${filtered.length} 条`;
     }
 
     async function uploadToGitHub() {
       const token = document.getElementById('token').value.trim();
-      const selectedFile = document.getElementById('fileSelect').value;
-      const uploadStatus = document.getElementById('uploadStatus');
+      const file = document.getElementById('fileSelect').value;
+      const status = document.getElementById('uploadStatus');
+      if (!token) return status.textContent = '❌ 缺少 Token';
+      if (!file) return status.textContent = '❌ 未选择文件';
+      if (!filteredText) return status.textContent = '⚠️ 没有内容';
 
-      if (!token) {
-        uploadStatus.textContent = '❌ 请填写 无敌密码';
-        return;
-      }
-      if (!selectedFile) {
-        uploadStatus.textContent = '❌ 请选择一个文件编号';
-        return;
-      }
-      if (!filteredText) {
-        uploadStatus.textContent = '⚠️ 没有可上传的内容';
-        return;
-      }
-
-      const encoded = btoa(filteredText);
       const owner = 'Kizoc';
       const repo = 'suv';
-      const path = selectedFile;
-      const branch = 'main';
+      const path = file;
+      const content = btoa(filteredText);
 
       try {
-        const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github+json'
-          }
+        const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+          headers: { 'Authorization': `token ${token}` }
         });
-
         let sha = null;
-        if (getResp.ok) {
-          const fileInfo = await getResp.json();
-          sha = fileInfo.sha;
-        } else if (getResp.status !== 404) {
-          const err = await getResp.json();
-          uploadStatus.textContent = '❌ 获取文件信息失败：' + (err.message || '未知错误');
-          return;
-        }
+        if (getRes.ok) sha = (await getRes.json()).sha;
 
-        const bodyData = {
-          message: sha ? `更新 ${path}` : `创建 ${path}`,
-          content: encoded,
-          branch
+        const body = {
+          message: '更新订阅文件',
+          content,
+          branch: 'main',
+          ...(sha ? { sha } : {})
         };
-        if (sha) bodyData.sha = sha;
 
-        const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+        const putRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
           method: 'PUT',
           headers: {
             'Authorization': `token ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(bodyData)
+          body: JSON.stringify(body)
         });
 
-        if (putResp.ok) {
-          uploadStatus.textContent = `✅ 上传成功：${path}`;
-          showCopyDialog(`https://${owner}.github.io/${repo}/${path}`);
+        if (putRes.ok) {
+          const url = `https://${owner}.github.io/${repo}/${path}`;
+          status.textContent = `✅ 上传成功！`;
+          showCopyDialog(url);
         } else {
-          const err = await putResp.json();
-          uploadStatus.textContent = '❌ 上传失败：' + (err.message || '未知错误');
+          const err = await putRes.json();
+          status.textContent = '❌ 上传失败：' + (err.message || '未知错误');
         }
       } catch (e) {
-        uploadStatus.textContent = '❌ 异常错误：' + e.message;
+        status.textContent = '❌ 异常：' + e.message;
       }
     }
 
@@ -191,40 +163,18 @@
       dialog.style.left = '50%';
       dialog.style.transform = 'translate(-50%, -50%)';
       dialog.style.background = '#fff';
-      dialog.style.border = '1px solid #ccc';
       dialog.style.padding = '20px';
-      dialog.style.zIndex = '10000';
-      dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
       dialog.style.borderRadius = '8px';
-      dialog.style.maxWidth = '90%';
-      dialog.style.textAlign = 'center';
-
+      dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
       dialog.innerHTML = `
-        <p style="margin-bottom: 10px; font-weight: bold;">上传成功！请复制订阅链接：</p>
-        <input type="text" readonly value="${url}" style="width: 100%; padding: 8px; font-size: 14px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;" />
-        <button id="copyBtn" style="padding: 8px 16px; background-color: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">一键复制</button>
-        <button id="closeBtn" style="padding: 6px 12px; margin-left: 10px; background-color: #ccc; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
+        <p style="font-weight: bold; margin-bottom: 10px;">✅ 上传成功，请复制订阅链接：</p>
+        <input type="text" readonly value="${url}" style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-bottom: 10px;" />
+        <button onclick="navigator.clipboard.writeText('${url}');this.textContent='已复制！'" style="padding: 6px 12px; background: #1976d2; color: white; border: none; border-radius: 4px;">一键复制</button>
+        <button onclick="this.parentElement.remove()" style="margin-left: 10px; padding: 6px 12px; background: #ccc; border: none; border-radius: 4px;">关闭</button>
       `;
-
       document.body.appendChild(dialog);
-
-      const copyBtn = dialog.querySelector('#copyBtn');
-      const closeBtn = dialog.querySelector('#closeBtn');
-      const input = dialog.querySelector('input');
-
-      copyBtn.onclick = () => {
-        input.select();
-        input.setSelectionRange(0, 99999);
-        try {
-          document.execCommand('copy');
-        } catch {}
-        document.body.removeChild(dialog);
-      };
-
-      closeBtn.onclick = () => {
-        document.body.removeChild(dialog);
-      };
     }
   </script>
 </body>
 </html>
+

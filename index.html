@@ -3,31 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>订阅转换工具 - 高级分享版</title>
+  <title>订阅转换工具 -无敌大帅比</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen py-10 px-4">
   <div class="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-2xl">
-    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">✨ 订阅转换工具（无敌大帅比）</h1>
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">🔐 订阅转换工具 · 无敌大帅比</h1>
 
     <!-- 步骤 1：输入订阅链接 -->
     <label class="block font-semibold mb-1">步骤 1：订阅链接</label>
-    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入或通过网址参数自动填充" />
+    <input id="subUrl" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入订阅链接或 ?url= 参数" />
     <button onclick="decodeBase64()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">解析并解码</button>
-    <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">等待解码...</pre>
+    <pre id="decoded" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-40 overflow-auto">帅比解码...</pre>
 
     <!-- 步骤 2：关键词筛选 -->
-    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔，输入中文即可）</label>
+    <label class="block font-semibold mt-6 mb-1">步骤 2：过滤关键词（多个关键词用 | 分隔）</label>
     <input id="keywords" class="w-full mb-4 p-2 border rounded-lg" />
     <button onclick="filterKeywords()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl">筛选节点</button>
     <pre id="filtered" class="bg-gray-100 mt-4 p-4 rounded text-sm max-h-60 overflow-auto">等待筛选...</pre>
     <div id="stats" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <!-- 步骤 3：GitHub Token -->
-    <label class="block font-semibold mt-8 mb-1">步骤 3：GitHub Token 密钥</label>
-    <input id="token" type="text" class="w-full mb-4 p-2 border rounded-lg" placeholder="GitHub 密钥（只需粘贴一次）" />
+    <!-- 步骤 3：GitHub Token 密码映射 -->
+    <label class="block font-semibold mt-8 mb-1">步骤 3：无敌密码</label>
+    <input id="token" type="text" class="w-full mb-4 p-2 border rounded-lg" placeholder="输入密码，例如 123456" />
 
-    <!-- 新增下拉选择文件 -->
     <label class="block font-semibold mb-1">选择目标文件（553388369.txt - 553388468.txt）</label>
     <select id="fileSelect" class="w-full mb-4 p-2 border rounded-lg">
       <option value="">请选择文件编号</option>
@@ -36,13 +35,18 @@
     <button onclick="uploadToGitHub()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl">上传到 GitHub</button>
     <div id="uploadStatus" class="text-center text-sm text-gray-600 mt-2"></div>
 
-    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持 URL 自动解析关键词</p>
+    <p class="text-center text-gray-500 mt-10 text-sm">由 <span class="font-bold">无敌大帅比</span> 制作 · 支持密码登录上传</p>
   </div>
 
   <script>
     let decodedText = '';
     let filteredText = '';
     const defaultKeywords = '认准|全网|客服|美女|mao|网址|网站|最新|订阅|续费|迷路|官网|流量|过期|官网|落地|回国|本站|用户|若|邮箱|订阅|剩余|顶级|机场|到期|猫|赔钱|良心|liangxin|云|世界|cloud|夏日|summer';
+
+    // 密码映射表
+    const passwordToTokenMap = {
+      "1998": "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"
+    };
 
     window.onload = function () {
       document.getElementById('keywords').value = defaultKeywords;
@@ -52,8 +56,6 @@
         document.getElementById('subUrl').value = decodeURIComponent(url);
         decodeBase64();
       }
-
-      // 填充下拉框文件列表
       const fileSelect = document.getElementById('fileSelect');
       for (let i = 553388369; i <= 553388468; i++) {
         const opt = document.createElement('option');
@@ -72,10 +74,15 @@
       }
       output.textContent = '正在解析...';
       try {
-        const res = await fetch(subUrl);
+        const proxyUrl = "https://proxy-worker.kizoc369.workers.dev/?url=" + encodeURIComponent(subUrl);
+        const res = await fetch(proxyUrl);
         if (!res.ok) throw new Error(`请求失败，状态码 ${res.status}`);
         const raw = await res.text();
-        decodedText = atob(raw);
+        try {
+          decodedText = atob(raw);
+        } catch {
+          decodedText = raw;
+        }
         output.textContent = decodedText;
       } catch (e) {
         output.textContent = '❌ 解码失败: ' + e.message;
@@ -90,42 +97,28 @@
         output.textContent = '⚠️ 请先进行解码';
         return;
       }
-
       const keywordList = keywords.split('|').map(k => k.trim()).filter(k => k);
       const allLines = decodedText.split('\n').filter(l => l.trim());
       const filtered = allLines.filter(line => {
         if (line.startsWith('hy2://') || line.startsWith('hysteria2://')) return false;
         let decodedLine = '';
-        try {
-          decodedLine = decodeURIComponent(line);
-        } catch {
-          decodedLine = line;
-        }
+        try { decodedLine = decodeURIComponent(line); } catch { decodedLine = line; }
         return !keywordList.some(k => decodedLine.includes(k));
       });
-
       filteredText = filtered.join('\n');
       output.textContent = filteredText || '⚠️ 所有节点都被筛掉了';
       stats.textContent = `共 ${allLines.length} 个节点，筛掉 ${allLines.length - filtered.length} 个，剩余 ${filtered.length} 个`;
     }
 
     async function uploadToGitHub() {
-      const token = document.getElementById('token').value.trim();
+      let token = document.getElementById('token').value.trim();
+      token = passwordToTokenMap[token] || token;
+
       const selectedFile = document.getElementById('fileSelect').value;
       const uploadStatus = document.getElementById('uploadStatus');
-
-      if (!token) {
-        uploadStatus.textContent = '❌ 请填写 GitHub Token';
-        return;
-      }
-      if (!selectedFile) {
-        uploadStatus.textContent = '❌ 请选择一个文件编号';
-        return;
-      }
-      if (!filteredText) {
-        uploadStatus.textContent = '⚠️ 没有可上传的内容';
-        return;
-      }
+      if (!token) { uploadStatus.textContent = '❌ 请填写 GitHub Token 或密码'; return; }
+      if (!selectedFile) { uploadStatus.textContent = '❌ 请选择一个文件编号'; return; }
+      if (!filteredText) { uploadStatus.textContent = '⚠️ 没有可上传的内容'; return; }
 
       const encoded = btoa(filteredText);
       const owner = 'Kizoc';
@@ -140,7 +133,6 @@
             'Accept': 'application/vnd.github+json'
           }
         });
-
         let sha = null;
         if (getResp.ok) {
           const fileInfo = await getResp.json();
@@ -169,7 +161,6 @@
 
         if (putResp.ok) {
           uploadStatus.textContent = `✅ 上传成功：${path}`;
-          showCopyDialog(`https://${owner}.github.io/${repo}/${path}`);
         } else {
           const err = await putResp.json();
           uploadStatus.textContent = '❌ 上传失败：' + (err.message || '未知错误');
@@ -177,48 +168,6 @@
       } catch (e) {
         uploadStatus.textContent = '❌ 异常错误：' + e.message;
       }
-    }
-
-    function showCopyDialog(url) {
-      const dialog = document.createElement('div');
-      dialog.style.position = 'fixed';
-      dialog.style.top = '50%';
-      dialog.style.left = '50%';
-      dialog.style.transform = 'translate(-50%, -50%)';
-      dialog.style.background = '#fff';
-      dialog.style.border = '1px solid #ccc';
-      dialog.style.padding = '20px';
-      dialog.style.zIndex = '10000';
-      dialog.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
-      dialog.style.borderRadius = '8px';
-      dialog.style.maxWidth = '90%';
-      dialog.style.textAlign = 'center';
-
-      dialog.innerHTML = `
-        <p style="margin-bottom: 10px; font-weight: bold;">上传成功！请复制订阅链接：</p>
-        <input type="text" readonly value="${url}" style="width: 100%; padding: 8px; font-size: 14px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;" />
-        <button id="copyBtn" style="padding: 8px 16px; background-color: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">一键复制</button>
-        <button id="closeBtn" style="padding: 6px 12px; margin-left: 10px; background-color: #ccc; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
-      `;
-
-      document.body.appendChild(dialog);
-
-      const copyBtn = dialog.querySelector('#copyBtn');
-      const closeBtn = dialog.querySelector('#closeBtn');
-      const input = dialog.querySelector('input');
-
-      copyBtn.onclick = () => {
-        input.select();
-        input.setSelectionRange(0, 99999);
-        try {
-          document.execCommand('copy');
-        } catch {}
-        document.body.removeChild(dialog);
-      };
-
-      closeBtn.onclick = () => {
-        document.body.removeChild(dialog);
-      };
     }
   </script>
 </body>
